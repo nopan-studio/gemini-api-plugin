@@ -159,8 +159,8 @@ function gemini_scraper_shortcode() {
 
     ob_start();
     ?>
-    <div class="gemini-reply"><?php $reply_box_text ?></div>
-    <button id="run-gemini"><?php  $button_text ?></button>
+    <div class="gemini-reply"><?php echo($reply_box_text); ?></div>
+    <button id="run-gemini"><?php echo($button_text); ?></button>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
     <script>
