@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Gemini AJAX API  
  * Description: Calls Gemini API using prompt data via AJAX and allows API key configuration from admin panel.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Sherdelle Caneda
  */
 
@@ -39,6 +39,19 @@ function gemini_api_render_settings_page() {
                     <td><input type="text" name="gemini_api_key" value="<?php echo esc_attr(get_option('gemini_api_key')); ?>"  placeholder="Add your API Key Here" style="width: 500px;" /></td>
                 </tr>
             </table>
+            <h3>Gemini Reply Customize</h3>
+            <table class="form-table">
+                <tr valign="top">
+                    <th scope="row">Button Text</th>
+                    <td><input type="text" name="button_text" value="<?php echo esc_attr(get_option('button_text')); ?>" placeholder="Uses Default Prompt" style="width: 500px;" /></td>
+                </tr>
+            </table>
+            <table class="form-table">
+                <tr valign="top">
+                    <th scope="row">Reply Box placeholder text</th>
+                    <td><input type="text" name="reply_box_text" value="<?php echo esc_attr(get_option('reply_box_text')); ?>" placeholder="Uses Default Prompt" style="width: 500px;" /></td>
+                </tr>
+            </table>
             <h3>Custom Settings</h3>
             <table class="form-table">
                 <tr valign="top">
@@ -46,8 +59,19 @@ function gemini_api_render_settings_page() {
                     <td><input type="text" name="system_instruction" value="<?php echo esc_attr(get_option('system_instruction')); ?>" placeholder="Uses Default Prompt" style="width: 500px;" /></td>
                 </tr>
             </table>
+            
+            
             <?php submit_button(); ?>
         </form>
+        <h3>How to Use</h3>
+        <p>
+            To use this plugin, follow these steps:
+            <br>
+            add a .my-content class to the div or section you want to scrape.
+            <br>
+            use shortcode [gemini_scraper] in your post or page to display the button and response area.
+            
+        </p>
     </div>
     <?php
 }
@@ -82,7 +106,7 @@ function handle_my_custom_api_request() {
 
     $system_instruction = get_option('system_instruction');
     if (!$system_instruction) {
-        $system_instruction = 'You are TheQ Assistant, and wil always act human like and not an LLM model. you fact check the payload given to you and explain it in a detailed manner. all replies must be in a clean text. format all replies as if you are writing an article, you are respond in a grok like manner that is concise and short. reply in a short manner but informative. always follow the payload given to you.';
+        $system_instruction = 'You are a human-like assistant tasked with fact-checking provided content. Never refer to yourself as an AI or language model. Your responses must be clear, concise, and informative, written in the style of a well-edited article using clean, plain text. Avoid special characters, symbols, or unnecessary embellishments. Format all replies with clear headings and short paragraphs. Stay strictly focused on the content of the payload—do not add external information or commentary.';
         //wp_send_json_error(['message' => 'System instruction not set in plugin settings.']);
     }
 
@@ -120,3 +144,64 @@ function handle_my_custom_api_request() {
 
     wp_send_json_success(['data' => $decoded_body]);
 }
+
+function gemini_scraper_shortcode() {
+
+    $button_text = get_option('button_text');
+    if (!$button_text) {
+        $button_text = 'Run Gemini';
+    }
+
+    $reply_box_text = get_option('reply_box_text');
+    if (!$reply_box_text) {
+        $reply_box_text = 'Response will be shown here...';
+    }
+
+    ob_start();
+    ?>
+    <div class="gemini-reply"><?php $reply_box_text ?></div>
+    <button id="run-gemini"><?php  $button_text ?></button>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script>
+        function scrapeParagraphText(containerSelector) {
+            let combinedText = '';
+
+            // Find all <p> elements inside the specified container
+            $(containerSelector).find('p').each(function() {
+                combinedText += $(this).text() + ' ';
+            });
+
+            // Optional: trim excess whitespace
+            console.log(combinedText);
+            return combinedText.trim();
+        }
+
+        function getGeminiResponse() {
+            const prompt = scrapeParagraphText('.my-content');
+            $.post(ajax_api_obj.ajax_url, {
+                action: 'my_custom_api_request',
+                nonce: ajax_api_obj.nonce,
+                data: JSON.stringify({ prompt: prompt })
+            }, function(response) {
+                if (response.success) {
+                    const reply = response.data.data.candidates[0].content.parts[0].text;
+                    $('.gemini-reply').text(reply);
+                } else {
+                    $('.gemini-reply').text('Failed to get response.');
+                }
+            });
+        }
+
+        // Trigger via button click
+        jQuery(document).ready(function($) {
+            $('#run-gemini').on('click', function() {
+                getGeminiResponse();
+            });
+        });
+    </script>
+    <?php
+    return ob_get_clean();
+}
+
+add_shortcode('gemini_scraper', 'gemini_scraper_shortcode');
