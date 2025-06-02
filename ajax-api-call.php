@@ -149,7 +149,7 @@ function gemini_scraper_shortcode() {
 
     $button_text = get_option('button_text');
     if (!$button_text) {
-        $button_text = 'Run Gemini';
+        $button_text = 'SEND';
     }
 
     $reply_box_text = get_option('reply_box_text');
@@ -159,8 +159,143 @@ function gemini_scraper_shortcode() {
 
     ob_start();
     ?>
-    <div class="gemini-reply"><?php echo($reply_box_text); ?></div>
-    <button id="run-gemini"><?php echo($button_text); ?></button>
+
+    <style>
+        .hidden {
+            display: none;
+        }
+        .bordered {
+            border-top: 1px solid #484848;
+            border-right: 1px solid #282828;
+            border-bottom: 1px solid #282828;
+            border-left: 1px solid #484848;
+        }
+        
+        .gemini-modal {
+            position: fixed ;
+            border-radius: 25px;
+            bottom: 0% ;
+            right: 0% ;
+            width: 500px ;
+            background-color: #fff;
+            margin: 1%;
+            padding: 0px 20px 20px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 998;
+        }
+
+        .gemini-modal .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0px 10px 10px 10px;
+        }
+
+        .gemini-modal .input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            flex-direction: column;
+            background-color: #f1f1f1;
+            border: 1px solid #c1c1c1;
+            border-radius: 25px;
+            padding: 10px;
+        }
+        
+        .gemini-modal .input-wrapper .text-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f1f1f1;
+            color:#a1a1a1;
+            border: 0px solid #ccc;
+            border-radius: 25px;
+        }
+
+        .gemini-modal .input-wrapper .text-input:focus {
+            outline: none;
+            border-color: #282828;
+        }
+
+        .gemini-modal .chat-box {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 14px;
+            color: #282828;
+        }
+
+    
+        .gemini-modal button {
+            width: 40px;
+            height: 40px;
+            background-color: #d1d1d1;
+            color: #a1a1a1;
+            border: 1px solid #c1c1c1;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+
+        .gemini-toggle{
+            background-color: white;
+            border-radius: 25px;
+            color: #282828;
+            position: fixed ;
+            font-size: 20px;
+            font-weight: bold;
+            bottom: 0% ;
+            right: 0% ;
+            width: 50px ;
+            height: 50px ;
+            margin: 1%;
+            z-index: 9999;
+        }
+
+        .gemini-toggle:hover {
+            background-color: #fefefe;
+            color: gray;
+            border-color: #181818;
+        }
+    </style>
+
+    <script>
+        jQuery(document).ready(function($) {
+            $('.gemini-modal').hide()
+        });
+
+        function toggle_modal(timer) {
+                $('.gemini-modal').animate({
+                    height: 'toggle',
+                    width: 'toggle',
+                    opacity: 'toggle',
+                }, 150);
+                $('.gemini-toggle').fadeToggle(timer);
+            }
+          
+    </script>
+
+    <div class="gemini-modal bordered">
+        <div class="top-bar">
+              <h2>Chat with Gemini</h2>
+            <button class="" onclick='toggle_modal(200)'>X</button>
+        </div>
+      
+        <div class="chat-box" id="chat-box">
+            <div class="gemini-reply"><?php echo($reply_box_text); ?></div>
+        </div>
+
+        <form class="input-wrapper" onsubmit="event.preventDefault(); getGeminiResponse();"> 
+            <input type="text" id="user-payload" name="user-payload" class="user-payload text-input" placeholder="Enter your payload here..."/>
+            <button id="run-gemini" type="submit">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-md"><path d="M7.99992 14.9993V5.41334L4.70696 8.70631C4.31643 9.09683 3.68342 9.09683 3.29289 8.70631C2.90237 8.31578 2.90237 7.68277 3.29289 7.29225L8.29289 2.29225L8.36906 2.22389C8.76184 1.90354 9.34084 1.92613 9.70696 2.29225L14.707 7.29225L14.7753 7.36842C15.0957 7.76119 15.0731 8.34019 14.707 8.70631C14.3408 9.07242 13.7618 9.09502 13.3691 8.77467L13.2929 8.70631L9.99992 5.41334V14.9993C9.99992 15.5516 9.55221 15.9993 8.99992 15.9993C8.44764 15.9993 7.99993 15.5516 7.99992 14.9993Z" fill="currentColor"></path></svg>
+            </button>
+        </form>
+    </div>
+
+    <button class="gemini-toggle"  onclick='toggle_modal(150)'>G</button>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
     <script>
@@ -178,7 +313,8 @@ function gemini_scraper_shortcode() {
         }
 
         function getGeminiResponse() {
-            const prompt = scrapeParagraphText('.my-content');
+            const prompt = $('.user-payload').val(); //scrapeParagraphText('.my-content') + " " + $('.user-payload').val();
+       
             $.post(ajax_api_obj.ajax_url, {
                 action: 'my_custom_api_request',
                 nonce: ajax_api_obj.nonce,
@@ -192,13 +328,23 @@ function gemini_scraper_shortcode() {
                 }
             });
         }
+        //-------------------------------------------
+        function insertChatMessage(message, isUser = true) {
+            const chatBox = $('#chat-box');
+            const messageClass = isUser ? 'user-message' : 'gemini-message';
+            chatBox.append(`<div class="${messageClass}">${message}</div>`);
+            chatBox.scrollTop(chatBox[0].scrollHeight);
+        }
 
-        // Trigger via button click
-        jQuery(document).ready(function($) {
-            $('#run-gemini').on('click', function() {
-                getGeminiResponse();
-            });
-        });
+        let chatbox = [
+
+        ]
+
+    
+
+
+
+      
     </script>
     <?php
     return ob_get_clean();
