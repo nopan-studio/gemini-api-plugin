@@ -22,6 +22,7 @@ add_action('admin_menu', 'gemini_api_add_settings_page');
 function gemini_api_register_settings() {
     register_setting('gemini-api-settings-group', 'gemini_api_key');
 }
+
 add_action('admin_init', 'gemini_api_register_settings');
 
 // 3. Render the settings page
@@ -69,7 +70,7 @@ function gemini_api_render_settings_page() {
             <br>
             add a .my-content class to the div or section you want to scrape.
             <br>
-            use shortcode [gemini_scraper] in your post or page to display the button and response area.
+            use shortcode [gemini_floater] in your post or page to display the button and response area.
             
         </p>
     </div>
@@ -95,11 +96,13 @@ function handle_my_custom_api_request() {
 
     $post_data = json_decode(stripslashes($_POST['data']), true);
     $prompt = sanitize_text_field($post_data['prompt']);
+
     if (!$prompt) {
-        wp_send_json_error(['message' => 'Prompt is required.']);
+        //wp_send_json_error(['message' => 'Prompt is required.']);
     }
 
     $api_key = get_option('gemini_api_key');
+    
     if (!$api_key) {
         wp_send_json_error(['message' => 'API key not set in plugin settings.']);
     }
@@ -114,7 +117,7 @@ function handle_my_custom_api_request() {
 
     $payload = [
         'contents' => [[
-            'parts' => [[ 'text' => $prompt ]]
+            'parts' => $post_data['prompt']
         ]],
         'systemInstruction' => [
             'parts' => [[
@@ -145,7 +148,7 @@ function handle_my_custom_api_request() {
     wp_send_json_success(['data' => $decoded_body]);
 }
 
-function gemini_scraper_shortcode() {
+function gemini_floater() {
 
     $button_text = get_option('button_text');
     if (!$button_text) {
@@ -259,6 +262,38 @@ function gemini_scraper_shortcode() {
             color: gray;
             border-color: #181818;
         }
+
+        .chat-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-box .user-message{ 
+            background-color: #e1e1e1;
+            color: #282828;
+            width: fit-content;
+            align-self: flex-end;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .chat-box .gemini-message{ 
+            background-color: #fff;
+            color: #282828;
+            width: fit-content;
+            align-self: flex-start;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+
     </style>
 
     <script>
@@ -284,7 +319,7 @@ function gemini_scraper_shortcode() {
         </div>
       
         <div class="chat-box" id="chat-box">
-            <div class="gemini-reply"><?php echo($reply_box_text); ?></div>
+            <div class="gemini-reply"></div>
         </div>
 
         <form class="input-wrapper" onsubmit="event.preventDefault(); getGeminiResponse();"> 
@@ -299,6 +334,8 @@ function gemini_scraper_shortcode() {
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
     <script>
+        let chat_history = [];
+
         function scrapeParagraphText(containerSelector) {
             let combinedText = '';
 
@@ -314,40 +351,51 @@ function gemini_scraper_shortcode() {
 
         function getGeminiResponse() {
             const prompt = $('.user-payload').val(); //scrapeParagraphText('.my-content') + " " + $('.user-payload').val();
-       
+
+            insertChatMessage(prompt, true); 
+            
             $.post(ajax_api_obj.ajax_url, {
                 action: 'my_custom_api_request',
                 nonce: ajax_api_obj.nonce,
-                data: JSON.stringify({ prompt: prompt })
+                data: JSON.stringify({ prompt: chat_history })
             }, function(response) {
                 if (response.success) {
                     const reply = response.data.data.candidates[0].content.parts[0].text;
-                    $('.gemini-reply').text(reply);
+                    //$('.gemini-reply').text(reply);
+                    insertChatMessage(reply, false); // Insert user message
                 } else {
                     $('.gemini-reply').text('Failed to get response.');
                 }
             });
         }
+        
         //-------------------------------------------
         function insertChatMessage(message, isUser = true) {
             const chatBox = $('#chat-box');
             const messageClass = isUser ? 'user-message' : 'gemini-message';
-            chatBox.append(`<div class="${messageClass}">${message}</div>`);
+            chatBox.append(
+                `<div class="${messageClass}">
+                    <strong>${isUser ? 'You' : 'Gemini'}:</strong>
+                    ${message}
+                </div>`);
             chatBox.scrollTop(chatBox[0].scrollHeight);
+
+            if (isUser) {
+                // Add user message to chat history
+                chat_history.push({
+                    text: "User: " + message,
+                });
+            } else {
+                // Add Gemini response to chat history
+                chat_history.push({
+                    text: "Model: " + message,
+                });
+            }
         }
-
-        let chatbox = [
-
-        ]
-
-    
-
-
-
       
     </script>
     <?php
     return ob_get_clean();
 }
 
-add_shortcode('gemini_scraper', 'gemini_scraper_shortcode');
+add_shortcode('gemini_floater', 'gemini_floater');
