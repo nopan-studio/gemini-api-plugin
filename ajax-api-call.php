@@ -179,7 +179,7 @@ function gemini_floater() {
             border-radius: 25px;
             bottom: 0% ;
             right: 0% ;
-            width: 500px ;
+            width:450px ;
             background-color: #fff;
             margin: 1%;
             padding: 0px 20px 20px 20px;
@@ -220,7 +220,7 @@ function gemini_floater() {
         }
 
         .gemini-modal .chat-box {
-            max-height: 300px;
+            max-height: 400px;
             overflow-y: auto;
             margin-bottom: 10px;
             padding: 10px;
@@ -228,19 +228,44 @@ function gemini_floater() {
             color: #282828;
         }
 
-    
-        .gemini-modal button {
-            width: 40px;
-            height: 40px;
-            background-color: #d1d1d1;
-            color: #a1a1a1;
-            border: 1px solid #c1c1c1;
+        .gemini-modal .button{
+            background-color: #282828;
+            color: white;
+            border: none;
             border-radius: 25px;
+            width: 25px;
+            height: 25px;
             cursor: pointer;
-            font-size: 10px;
+            padding: 1%;
+            font-size: 12px;
             font-weight: bold;
         }
 
+        .gemini-modal .button:hover {
+            background-color: #484848;
+            color: #fefefe;
+        }
+        .gemini-modal .button-reply {
+            background-color: transparent;
+            color:#181818;
+            border: none;
+            border-radius: 25px;
+            width: 25px;
+            height: 25px;
+            display: flex;                /* Enables Flexbox */
+            align-items: center;         /* Vertically center */
+            justify-content: center;     /* Horizontally center */
+            cursor: pointer;
+            padding: 2px;
+            margin: 5px 5px 5px 0px;
+            font-size: 15px;
+            font-weight: bold;
+        }
+
+        .gemini-modal .button-reply:hover {
+            background-color: #d1d1d1;
+            color: #282828;
+        }
 
         .gemini-toggle{
             background-color: white;
@@ -264,8 +289,8 @@ function gemini_floater() {
         }
 
         .chat-box {
-            background-color: #f9f9f9;
-            border: 1px solid #ccc;
+            background-color: transparent;
+            border: 0px solid #ccc;
             border-radius: 10px;
             padding: 10px;
             margin-bottom: 10px;
@@ -273,18 +298,29 @@ function gemini_floater() {
             flex-direction: column;
         }
 
-        .chat-box .user-message{ 
-            background-color: #e1e1e1;
-            color: #282828;
+        .chat-box .user-message{
+            color: #fff;
             width: fit-content;
+            display: flex;
+            flex-direction: row;
             align-self: flex-end;
             padding: 10px;
             border-radius: 10px;
             margin-bottom: 10px;
         }
 
+
+        .chat-box .user-message .message-text{
+            background-color:rgb(20, 125, 245);;
+            color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
         .chat-box .gemini-message{ 
-            background-color: #fff;
+            background-color: transparent;
             color: #282828;
             width: fit-content;
             align-self: flex-start;
@@ -314,8 +350,8 @@ function gemini_floater() {
 
     <div class="gemini-modal bordered">
         <div class="top-bar">
-              <h2>Chat with Gemini</h2>
-            <button class="" onclick='toggle_modal(200)'>X</button>
+              <h2>Chat Gemini</h2>
+            <button class="button" onclick='toggle_modal(200)'>X</button>
         </div>
       
         <div class="chat-box" id="chat-box">
@@ -323,8 +359,8 @@ function gemini_floater() {
         </div>
 
         <form class="input-wrapper" onsubmit="event.preventDefault(); getGeminiResponse();"> 
-            <input type="text" id="user-payload" name="user-payload" class="user-payload text-input" placeholder="Enter your payload here..."/>
-            <button id="run-gemini" type="submit">
+            <input type="text" id="user-payload" name="user-payload" class="user-payload text-input" placeholder="Ask anything.."/>
+            <button class="button" id="run-gemini" type="submit">
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-md"><path d="M7.99992 14.9993V5.41334L4.70696 8.70631C4.31643 9.09683 3.68342 9.09683 3.29289 8.70631C2.90237 8.31578 2.90237 7.68277 3.29289 7.29225L8.29289 2.29225L8.36906 2.22389C8.76184 1.90354 9.34084 1.92613 9.70696 2.29225L14.707 7.29225L14.7753 7.36842C15.0957 7.76119 15.0731 8.34019 14.707 8.70631C14.3408 9.07242 13.7618 9.09502 13.3691 8.77467L13.2929 8.70631L9.99992 5.41334V14.9993C9.99992 15.5516 9.55221 15.9993 8.99992 15.9993C8.44764 15.9993 7.99993 15.5516 7.99992 14.9993Z" fill="currentColor"></path></svg>
             </button>
         </form>
@@ -333,8 +369,19 @@ function gemini_floater() {
     <button class="gemini-toggle"  onclick='toggle_modal(150)'>G</button>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+
     <script>
         let chat_history = [];
+        
+        function escapeHTML(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         function scrapeParagraphText(containerSelector) {
             let combinedText = '';
@@ -350,10 +397,15 @@ function gemini_floater() {
         }
 
         function getGeminiResponse() {
-            const prompt = $('.user-payload').val(); //scrapeParagraphText('.my-content') + " " + $('.user-payload').val();
+            const prompt = DOMPurify.sanitize($('.user-payload').val())//scrapeParagraphText('.my-content') + " " + $('.user-payload').val()
 
-            insertChatMessage(prompt, true); 
-            
+            if (!prompt) {
+                return;
+            }
+
+            $('.user-payload').val('');
+            insertChatMessage(prompt, true);
+                        
             $.post(ajax_api_obj.ajax_url, {
                 action: 'my_custom_api_request',
                 nonce: ajax_api_obj.nonce,
@@ -368,15 +420,31 @@ function gemini_floater() {
                 }
             });
         }
-        
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                console.log('Text copied to clipboard');
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        };
+
         //-------------------------------------------
         function insertChatMessage(message, isUser = true) {
             const chatBox = $('#chat-box');
             const messageClass = isUser ? 'user-message' : 'gemini-message';
+            const messageButton= isUser ? 'hidden' :'';
+            const messageText = escapeHTML(message);
             chatBox.append(
                 `<div class="${messageClass}">
-                    <strong>${isUser ? 'You' : 'Gemini'}:</strong>
-                    ${message}
+                    <div class="message-text">
+                        ${message}
+                    </div>
+                    <div class="button-wrapper ${messageButton}" >
+                        <button class="button-reply" onclick='copyToClipboard(\`${messageText}\`)'>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-md-heavy"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"></path></svg>
+                        </button>
+                    </div>
                 </div>`);
             chatBox.scrollTop(chatBox[0].scrollHeight);
 
@@ -392,7 +460,6 @@ function gemini_floater() {
                 });
             }
         }
-      
     </script>
     <?php
     return ob_get_clean();
