@@ -164,9 +164,12 @@ function gemini_floater() {
     ?>
 
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap');
+
         .hidden {
             display: none;
         }
+
         .bordered {
             border-top: 1px solid #484848;
             border-right: 1px solid #282828;
@@ -175,6 +178,8 @@ function gemini_floater() {
         }
         
         .gemini-modal {
+            all:unsets;
+            font-family: 'Manrope', sans-serif;
             position: fixed ;
             border-radius: 25px;
             bottom: 0% ;
@@ -182,7 +187,7 @@ function gemini_floater() {
             width:450px ;
             background-color: #fff;
             margin: 1%;
-            padding: 0px 20px 20px 20px;
+            padding: 1%;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             z-index: 998;
         }
@@ -191,7 +196,7 @@ function gemini_floater() {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0px 10px 10px 10px;
+            padding:.5%;
         }
 
         .gemini-modal .input-wrapper {
@@ -270,13 +275,15 @@ function gemini_floater() {
         .gemini-toggle{
             background-color: white;
             border-radius: 25px;
+            border: 1px solid #282828;
             color: #282828;
             position: fixed ;
             font-size: 20px;
             font-weight: bold;
             bottom: 0% ;
             right: 0% ;
-            width: 50px ;
+            width: fit-content;
+            padding: 10px;
             height: 50px ;
             margin: 1%;
             z-index: 9999;
@@ -287,6 +294,28 @@ function gemini_floater() {
             color: gray;
             border-color: #181818;
         }
+
+        .embed-button{
+            background-color: #fff;
+            color: #515151;
+            border: #d1d1d1 solid 1px;
+            border-radius: 5px;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            padding: 1%;
+            font-size: 15px;
+            font-weight: bold;
+            position: absolute;
+            top: 0px;
+            right: 0px;
+        }
+
+        .embed-button:hover {
+            background-color: #f1f1f1;
+            color: #515151;
+        }
+        
 
         .chat-box {
             background-color: transparent;
@@ -328,29 +357,43 @@ function gemini_floater() {
             border-radius: 10px;
             margin-bottom: 10px;
         }
-
-
     </style>
 
     <script>
-        jQuery(document).ready(function($) {
-            $('.gemini-modal').hide()
-        });
+        function embed_button () {
+            const button = $('<button>', {
+                class: 'embed-button',
+                html: 'G',
+                click: function () {
+                    const $parent = $(this).parent();
+                    const scraped = scrapeParagraphText($parent.html()); // This logs the "value" of the parent, if applicable
+                    $('.user-payload').val(scraped);
+                    getGeminiResponse();
+                    toggle_modal(150);
+                }
+            });
+            $('.gemini-content').append(button);
+        }  
 
         function toggle_modal(timer) {
-                $('.gemini-modal').animate({
+            $('.gemini-modal').animate({
                     height: 'toggle',
                     width: 'toggle',
                     opacity: 'toggle',
                 }, 150);
                 $('.gemini-toggle').fadeToggle(timer);
-            }
-          
+        }
+
+        jQuery(document).ready(function($) {
+            $('.gemini-modal').hide();
+            embed_button();
+        });
+  
     </script>
 
     <div class="gemini-modal bordered">
         <div class="top-bar">
-              <h2>Chat Gemini</h2>
+            <h2>Chat Gemini</h2>
             <button class="button" onclick='toggle_modal(200)'>X</button>
         </div>
       
@@ -372,6 +415,7 @@ function gemini_floater() {
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
 
     <script>
+        let firstload = true;
         let chat_history = [];
         
         function escapeHTML(str) {
