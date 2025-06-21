@@ -109,7 +109,7 @@
 
         $system_instruction = get_option('system_instruction');
         if (!$system_instruction) {
-            $system_instruction = 'You are a human-like assistant tasked with fact-checking provided content. Never refer to yourself as an AI or language model. Your responses must be clear, concise, and informative, written in the style of a well-edited article using clean, plain text. Avoid special characters, symbols, or unnecessary embellishments. Format all replies with clear headings and short paragraphs. Stay strictly focused on the content of the payload—do not add external information or commentary.';
+            $system_instruction = 'You are a human-like assistant tasked with fact-checking provided content. Never refer to yourself as an AI or language model. Your responses must be clear, concise, and informative, written in the style of a well-edited article using clean, plain text. Avoid special characters, symbols, or unnecessary embellishments. Format all replies with clear headings and short paragraphs. Stay strictly focused on the content of the payload—do not add external information or commentary. when a question is asked, provide a direct answer based on the content provided in the payload. If the content is not sufficient to answer the question, state that you cannot answer based on the provided information. if a question is out of topic say otherwise. If the content is not sufficient to answer the question, state that you cannot answer based on the provided information. make sure you do not use any reply that is in a form of user: or model: or any other form of text that is not a direct answer to the question asked.';
             //wp_send_json_error(['message' => 'System instruction not set in plugin settings.']);
         }
 
@@ -163,6 +163,12 @@
         ob_start();
         ?>
 
+        
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap');
 
@@ -174,6 +180,7 @@
                 border-top: 1px solid #484848;
                 border-right: 1px solid #282828;
                 border-bottom: 1px solid #282828;
+                
                 border-left: 1px solid #484848;
             }
             
@@ -188,7 +195,7 @@
                 background-color: #fff;
                 margin: 1%;
                 padding: 1%;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.69);
                 z-index: 998;
             }
 
@@ -197,6 +204,12 @@
                 justify-content: space-between;
                 align-items: center;
                 padding:2%;
+            }
+
+            .gemini-modal .top-bar h1 {
+                font-size: 30px;
+                color: #282828;
+                margin: 0;
             }
 
             .gemini-modal .input-wrapper {
@@ -236,7 +249,7 @@
                 color: #282828;
             }
 
-            .gemini-modal .button{
+           .gemini-modal .button {
                 background-color: #282828;
                 color: white;
                 border: none;
@@ -247,7 +260,12 @@
                 padding: 1%;
                 font-size: 12px;
                 font-weight: bold;
+
+                display: flex;             /* ← Enable flexbox */
+                align-items: center;       /* ← Vertically center */
+                justify-content: center;   /* ← Horizontally center */
             }
+
 
             .gemini-modal .button:hover {
                 background-color: #484848;
@@ -291,7 +309,7 @@
                 height: 50px ;
                 width: 50px;
                 cursor: pointer;
-
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.69);
                 margin: 1%;
                 z-index: 9999;
             }
@@ -329,7 +347,6 @@
                 color: #515151;
             }
             
-
             .chat-box {
                 background-color: transparent;
                 border: 0px solid #ccc;
@@ -360,7 +377,7 @@
             }
             
             .chat-error{
-                background-color: rgb(255, 175, 175) !important;
+                background-color: rgb(226, 71, 71) !important;
             }
 
             .chat-box .user-message .message-text *{
@@ -376,6 +393,12 @@
                 padding: 10px;
                 border-radius: 10px;
                 margin-bottom: 10px;
+            }
+
+            .chat-box .gemini-message h1 {
+                font-size: 18px;
+                color: #282828;
+                margin: 0;
             }
 
             .chat-box .gemini-message .message-text{
@@ -417,37 +440,51 @@
                 const button = $('<button>', {
                     class: 'embed-button',
                     html: '?',
+                    title: 'Explain With Gemini',
                     click: function () {
                         const $parent = $(this).parent();
                         const scraped = scrapeParagraphText($parent.html()); // This logs the "value" of the parent, if applicable
                         $('.user-payload').val(scraped);
                         getGeminiResponse(true);
-                        toggle_modal(150);
+                        toggle_modal("open",150);
                     }
                 });
                 $('.gemini-content').append(button);
             }  
+            let modal_status = 'close';
+            // easings
+            $.easing.bounce = 
+$.easing.easeInOutQuad = function (x, t, b, c, d) {
+    return c * (1 - Math.pow(2, -10 * t / d)) + b;
+};
 
-            function toggle_modal(timer) {
-                $('.gemini-modal').animate({
+            function toggle_modal(action, timer) {
+
+                if(modal_status != action && (action == 'open' || action == 'close')) {
+                    modal_status = action;
+                    $('.gemini-modal').animate({
                         height: 'toggle',
-                        width: 'toggle',
                         opacity: 'toggle',
-                    }, 150);
-                    $('.gemini-toggle').fadeToggle(timer);
+                        easing: 'swing',
+                    }, timer, 'bounce');
+
+                    $('.gemini-toggle').animate({
+                        opacity: 'toggle',
+                    }, timer, 'bounce');
+                    return;
+                }
             }
 
             jQuery(document).ready(function($) {
                 $('.gemini-modal').hide();
                 embed_button();
             });
-    
         </script>
 
         <div class="gemini-modal bordered">
             <div class="top-bar">
                 <h1>Ask Gemini</h1>
-                <button class="button" onclick='toggle_modal(200)'>X</button>
+                <button class="button" onclick='toggle_modal("close",200)'>X</button>
             </div>
         
             <div class="chat-box" id="chat-box">
@@ -462,11 +499,7 @@
             </form>
         </div>
 
-        <button class="gemini-toggle"  onclick='toggle_modal(150)'>G</button>
-
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.5/dist/purify.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <button class="gemini-toggle"  onclick='toggle_modal("open",150)'>G</button>
 
         <script>
             let firstload = true;
@@ -519,10 +552,9 @@
                         //$('.gemini-reply').text(reply);
                         insertChatMessage(reply, false); // Insert user message
                     } else {
-                       
                         console.log($('#message-' + history).length);
                             $('#message-' + history).addClass('chat-error');
-                            $('.gemini-reply').text('Failed to get response.');
+                            
                     }
                 });
             }
@@ -561,7 +593,7 @@
                         <div id="message-${id}" class="message-text" >
                             ${message}
                         </div>
-                        <div class="button-wrapper ${messageButton}" >
+                        <div class="button-wrapper-gemini ${messageButton}">
                             <button class="button-reply" onclick='copyToClipboard(\`${messageText}\`)'>
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="icon-md-heavy"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 5C7 3.34315 8.34315 2 10 2H19C20.6569 2 22 3.34315 22 5V14C22 15.6569 20.6569 17 19 17H17V19C17 20.6569 15.6569 22 14 22H5C3.34315 22 2 20.6569 2 19V10C2 8.34315 3.34315 7 5 7H7V5ZM9 7H14C15.6569 7 17 8.34315 17 10V15H19C19.5523 15 20 14.5523 20 14V5C20 4.44772 19.5523 4 19 4H10C9.44772 4 9 4.44772 9 5V7ZM5 9C4.44772 9 4 9.44772 4 10V19C4 19.5523 4.44772 20 5 20H14C14.5523 20 15 19.5523 15 19V10C15 9.44772 14.5523 9 14 9H5Z" fill="currentColor"></path></svg>
                             </button>
