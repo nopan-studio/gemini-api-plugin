@@ -198,6 +198,12 @@
                         align-items: center;
                         padding:2%;
                     }
+
+                    .gemini-modal .top-bar h1 {
+                        font-size: 13px;
+                        color: #282828;
+                        margin: 0;
+                    }
                     
                     .gemini-modal .input-wrapper {
                         display: flex;
