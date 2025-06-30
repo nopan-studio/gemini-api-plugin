@@ -200,7 +200,7 @@
                     }
 
                     .gemini-modal .top-bar h1 {
-                        font-size: 13px;
+                        font-size: 19px;
                         color: #282828;
                         margin: 0;
                     }
